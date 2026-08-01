@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Github, Linkedin, Twitter, Instagram, Globe, Mail, ExternalLink,
   Plus, Pencil, Trash2, X, ArrowUpRight, Copy, Check, MapPin, Sparkles, Loader2,
-  Lock, Unlock
+  Lock, Unlock, FileText, Download, Phone, Code2
 } from "lucide-react";
 import {
   loadShared, saveShared, verifyPasscode,
@@ -22,7 +22,7 @@ const THEME = {
   cream: "#faf3e6",
 };
 
-const KEYS = { profile: "profile", socials: "socials", projects: "projects", certs: "certs" };
+const KEYS = { profile: "profile", socials: "socials", projects: "projects", certs: "certs", skills: "skills" };
 
 const DEFAULT_PROFILE = {
   name: "Ojas Shinde",
@@ -31,8 +31,10 @@ const DEFAULT_PROFILE = {
     "I build interfaces that feel considered — where engineering rigor meets a bit of visual mischief. Currently shipping products, occasionally breaking them on purpose to see how they bend.",
   about:
     "I'm a developer who likes the seam between logic and craft — the part of a build where a good decision about spacing or timing matters as much as the algorithm underneath it. I care about fast, honest software: things that load quickly, explain themselves, and don't waste anyone's time.",
-  email: "shindeojas17@gmail.com",
+  email: "hello@ojasshinde.dev",
+  phone: "",
   location: "India",
+  resumeUrl: "",
 };
 
 const SOCIAL_PLATFORMS = [
@@ -290,7 +292,21 @@ function EmptyState({ label, onAdd, addLabel }) {
   );
 }
 
-/* ============================ owner access gate ============================ */
+function Tooltip({ label, children }) {
+  return (
+    <div className="group/tip relative inline-flex">
+      {children}
+      <span
+        className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2.5 py-1 text-xs opacity-0 transition-opacity duration-150 group-hover/tip:opacity-100"
+        style={{ background: THEME.ink, color: THEME.cream, border: "1px solid rgba(250,243,230,0.15)", fontFamily: "'Space Grotesk', sans-serif" }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+
 
 function OwnerModal({ open, onClose, onUnlock }) {
   const [pass, setPass] = useState("");
@@ -338,10 +354,12 @@ export default function App() {
   const [socials, setSocials] = useState(DEFAULT_SOCIALS);
   const [projects, setProjects] = useState([]);
   const [certs, setCerts] = useState([]);
+  const [skills, setSkills] = useState([]);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [projectModal, setProjectModal] = useState(null);
   const [certModal, setCertModal] = useState(null);
+  const [skillModal, setSkillModal] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [copied, setCopied] = useState(false);
 
@@ -351,13 +369,14 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const [p, s, pr, c] = await Promise.all([
+      const [p, s, pr, c, sk] = await Promise.all([
         loadShared(KEYS.profile, DEFAULT_PROFILE),
         loadShared(KEYS.socials, DEFAULT_SOCIALS),
         loadShared(KEYS.projects, []),
         loadShared(KEYS.certs, []),
+        loadShared(KEYS.skills, []),
       ]);
-      setProfile(p); setSocials(s); setProjects(pr); setCerts(c);
+      setProfile(p); setSocials(s); setProjects(pr); setCerts(c); setSkills(sk);
 
       const stored = getStoredPasscode();
       if (stored) {
@@ -435,8 +454,22 @@ export default function App() {
     setConfirmDelete(null);
   };
 
+  const saveSkill = async (draft) => {
+    const next = draft.id ? skills.map((s) => (s.id === draft.id ? draft : s)) : [...skills, { ...draft, id: uid() }];
+    setSkills(next);
+    await saveShared(KEYS.skills, next, ownerPasscode);
+    setSkillModal(null);
+  };
+  const deleteSkill = async (id) => {
+    const next = skills.filter((s) => s.id !== id);
+    setSkills(next);
+    await saveShared(KEYS.skills, next, ownerPasscode);
+    setConfirmDelete(null);
+  };
+
   const navItems = [
     { id: "about", label: "About" },
+    { id: "skills", label: "Skills" },
     { id: "projects", label: "Projects" },
     { id: "certifications", label: "Certifications" },
     { id: "connect", label: "Connect" },
@@ -476,6 +509,29 @@ export default function App() {
         <div className="relative z-10 flex min-h-screen w-full flex-col justify-end px-5 pb-14 sm:px-10 sm:pb-16">
           <p className="mb-3 text-xs uppercase tracking-[0.3em] sm:text-sm" style={{ fontFamily: "'IBM Plex Mono', monospace", color: THEME.coral }}>{profile.role}</p>
           <NameReveal text={profile.name} />
+          {profile.resumeUrl && (
+            <a
+              href={profile.resumeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              className="mt-4 inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-xs font-medium transition-colors sm:text-sm"
+              style={{ border: `1px solid rgba(250,243,230,0.25)`, color: THEME.sand }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = THEME.coral; e.currentTarget.style.color = THEME.cream; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(250,243,230,0.25)"; e.currentTarget.style.color = THEME.sand; }}
+            >
+              <FileText className="h-3.5 w-3.5" /> View / download résumé <Download className="h-3.5 w-3.5" />
+            </a>
+          )}
+          {!profile.resumeUrl && isOwner && (
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="mt-4 inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-xs"
+              style={{ border: "1px dashed rgba(250,243,230,0.25)", color: "rgba(250,243,230,0.45)" }}
+            >
+              <FileText className="h-3.5 w-3.5" /> Add a résumé link in Edit profile
+            </button>
+          )}
           <div className="mt-7 grid grid-cols-12 gap-6">
             <p className="col-span-12 text-sm leading-relaxed sm:text-base md:col-span-7" style={{ color: "rgba(250,243,230,0.68)" }}>{profile.tagline}</p>
             <div className="col-span-12 flex items-end md:col-span-5 md:justify-end">
@@ -516,6 +572,40 @@ export default function App() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ============================= SKILLS ============================= */}
+      <section id="skills" className="px-5 py-24 sm:px-10 md:py-32">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <SectionEyebrow>Skills</SectionEyebrow>
+              <Reveal as="h2" text="Tools & technologies." className="text-3xl font-medium sm:text-4xl md:text-5xl" style={{ fontFamily: "'Fraunces', serif", color: THEME.cream }} />
+            </div>
+            {isOwner && (
+              <button onClick={() => setSkillModal({})} className="inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-medium sm:text-sm" style={{ background: THEME.burntOrange, color: THEME.ink }}>
+                <Plus className="h-4 w-4" /> Add skill
+              </button>
+            )}
+          </div>
+
+          {skills.length === 0 ? (
+            isOwner ? (
+              <EmptyState label="No tools added yet — this is your stack, at a glance." addLabel="Add your first skill" onAdd={() => setSkillModal({})} />
+            ) : (
+              <p className="text-sm" style={{ color: "rgba(250,243,230,0.5)" }}>Skills are coming soon.</p>
+            )
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {skills.map((skill) => (
+                <SkillTile key={skill.id} skill={skill} isOwner={isOwner}
+                  onEdit={() => setSkillModal(skill)}
+                  onDelete={() => setConfirmDelete({ type: "skill", id: skill.id, name: skill.name })}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -618,12 +708,30 @@ export default function App() {
           <Reveal as="h2" text="Got something worth building?" className="mx-auto mb-6 max-w-2xl text-3xl font-medium leading-tight sm:text-4xl md:text-5xl" style={{ fontFamily: "'Fraunces', serif", color: THEME.cream }} />
           <p className="mx-auto mb-8 max-w-lg text-sm sm:text-base" style={{ color: "rgba(250,243,230,0.65)" }}>The best way to reach me is email — I read everything, and I reply to the interesting ones fastest.</p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <a href={`mailto:${profile.email}`} className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium" style={{ background: THEME.cream, color: THEME.ink }}>
+            <a
+              href={`mailto:${profile.email}`}
+              className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium"
+              style={{ background: THEME.cream, color: THEME.ink }}
+            >
               <Mail className="h-4 w-4" /> {profile.email}
             </a>
-            <button onClick={copyEmail} className="inline-flex h-11 w-11 items-center justify-center rounded-full" style={{ border: "1px solid rgba(250,243,230,0.2)", color: THEME.sand }} title="Copy email">
+            <button
+              onClick={copyEmail}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full"
+              style={{ border: "1px solid rgba(250,243,230,0.2)", color: THEME.sand }}
+              title="Copy email"
+            >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </button>
+            {profile.phone && (
+              <a
+                href={`tel:${profile.phone.replace(/[^+\d]/g, "")}`}
+                className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium"
+                style={{ background: THEME.burntOrange, color: THEME.ink }}
+              >
+                <Phone className="h-4 w-4" /> {profile.phone}
+              </a>
+            )}
           </div>
         </div>
       </section>
@@ -649,11 +757,17 @@ export default function App() {
       <SettingsModal open={settingsOpen} profile={profile} socials={socials} onClose={() => setSettingsOpen(false)} onSave={saveProfile} />
       <ProjectModal open={!!projectModal} draft={projectModal} onClose={() => setProjectModal(null)} onSave={saveProject} />
       <CertModal open={!!certModal} draft={certModal} onClose={() => setCertModal(null)} onSave={saveCert} />
+      <SkillModal open={!!skillModal} draft={skillModal} onClose={() => setSkillModal(null)} onSave={saveSkill} />
       <ConfirmModal
         open={!!confirmDelete}
         name={confirmDelete?.name}
         onCancel={() => setConfirmDelete(null)}
-        onConfirm={() => { if (!confirmDelete) return; confirmDelete.type === "project" ? deleteProject(confirmDelete.id) : deleteCert(confirmDelete.id); }}
+        onConfirm={() => {
+          if (!confirmDelete) return;
+          if (confirmDelete.type === "project") deleteProject(confirmDelete.id);
+          else if (confirmDelete.type === "cert") deleteCert(confirmDelete.id);
+          else if (confirmDelete.type === "skill") deleteSkill(confirmDelete.id);
+        }}
       />
     </div>
   );
@@ -696,6 +810,33 @@ function ProjectCard({ project, isOwner, onEdit, onDelete }) {
     </div>
   );
 }
+
+function SkillTile({ skill, isOwner, onEdit, onDelete }) {
+  const initials = skill.name.trim().slice(0, 2).toUpperCase();
+  return (
+    <div className="group/skill relative">
+      <Tooltip label={skill.name}>
+        <div
+          className="flex h-16 w-16 items-center justify-center rounded-2xl text-sm font-medium transition-transform hover:-translate-y-1"
+          style={{ background: THEME.deepPurple, border: "1px solid rgba(250,243,230,0.1)", color: THEME.sand, fontFamily: "'IBM Plex Mono', monospace" }}
+        >
+          {initials}
+        </div>
+      </Tooltip>
+      {isOwner && (
+        <div className="absolute -right-1.5 -top-1.5 flex gap-0.5 opacity-0 transition-opacity group-hover/skill:opacity-100">
+          <button onClick={onEdit} title="Edit" className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: THEME.ink, color: THEME.sand, border: "1px solid rgba(250,243,230,0.2)" }}>
+            <Pencil className="h-2.5 w-2.5" />
+          </button>
+          <button onClick={onDelete} title="Delete" className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: THEME.ink, color: THEME.sand, border: "1px solid rgba(250,243,230,0.2)" }}>
+            <Trash2 className="h-2.5 w-2.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function CertRow({ cert, isLast, isOwner, onEdit, onDelete }) {
   return (
@@ -743,8 +884,14 @@ function SettingsModal({ open, profile, socials, onClose, onSave }) {
       <Field label="Role / title"><TextInput value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} /></Field>
       <Field label="Hero tagline"><TextArea rows={3} value={form.tagline} onChange={(e) => setForm({ ...form, tagline: e.target.value })} /></Field>
       <Field label="About paragraph"><TextArea rows={4} value={form.about} onChange={(e) => setForm({ ...form, about: e.target.value })} /></Field>
+      <Field label="Résumé link (Google Drive, Dropbox, etc. — set sharing to “anyone with the link”)">
+        <TextInput value={form.resumeUrl} onChange={(e) => setForm({ ...form, resumeUrl: e.target.value })} placeholder="https://drive.google.com/..." />
+      </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Email"><TextInput value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
+        <Field label="Phone (optional, shown with a Call button)"><TextInput value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 90000 00000" /></Field>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
         <Field label="Location"><TextInput value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></Field>
       </div>
 
@@ -819,6 +966,34 @@ function CertModal({ open, draft, onClose, onSave }) {
       <div className="mt-2 flex justify-end gap-2">
         <button onClick={onClose} className="rounded-full px-4 py-2 text-sm" style={{ color: "rgba(250,243,230,0.6)" }}>Cancel</button>
         <PrimaryButton onClick={submit}>{form.id ? "Save changes" : "Add certification"}</PrimaryButton>
+      </div>
+    </Modal>
+  );
+}
+
+function SkillModal({ open, draft, onClose, onSave }) {
+  const [form, setForm] = useState({ name: "" });
+  useEffect(() => {
+    if (open) setForm({ id: draft?.id, name: draft?.name || "" });
+  }, [open, draft]);
+  if (!open) return null;
+
+  const submit = () => {
+    if (!form.name.trim()) return;
+    onSave({ id: form.id, name: form.name.trim() });
+  };
+
+  return (
+    <Modal open={open} title={form.id ? "Edit skill" : "Add skill"} onClose={onClose}>
+      <Field label="Tool or technology">
+        <TextInput autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. React, Figma, PostgreSQL" onKeyDown={(e) => e.key === "Enter" && submit()} />
+      </Field>
+      <p className="mb-4 text-xs" style={{ color: "rgba(250,243,230,0.45)" }}>
+        Shown as a tile with its first two letters — hovering reveals the full name.
+      </p>
+      <div className="mt-2 flex justify-end gap-2">
+        <button onClick={onClose} className="rounded-full px-4 py-2 text-sm" style={{ color: "rgba(250,243,230,0.6)" }}>Cancel</button>
+        <PrimaryButton onClick={submit}>{form.id ? "Save changes" : "Add skill"}</PrimaryButton>
       </div>
     </Modal>
   );
