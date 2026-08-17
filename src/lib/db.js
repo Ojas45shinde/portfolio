@@ -1,6 +1,7 @@
 import { supabase } from "./supabaseClient";
 
 const FUNCTION_URL = import.meta.env.VITE_PORTFOLIO_FUNCTION_URL; // e.g. https://<project-ref>.supabase.co/functions/v1/portfolio-write
+const UPLOAD_URL = import.meta.env.VITE_PORTFOLIO_UPLOAD_URL; // .../functions/v1/portfolio-upload
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 /** Anyone can read — table has a public SELECT policy (see schema.sql). */
@@ -58,6 +59,36 @@ export async function verifyPasscode(passcode) {
   } catch (e) {
     console.error("verifyPasscode failed", e);
     return false;
+  }
+}
+
+/**
+ * Uploads an image or PDF for a certificate. Only succeeds server-side if
+ * the passcode matches — same gate as saveShared. Returns { url, fileType }
+ * on success, or null on failure.
+ */
+export async function uploadFile(file, passcode) {
+  try {
+    const fileBase64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]); // strip data: prefix
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const res = await fetch(UPLOAD_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${ANON_KEY}` },
+      body: JSON.stringify({ passcode, fileName: file.name, fileBase64, contentType: file.type }),
+    });
+    const json = await res.json();
+    if (!json.ok) {
+      console.error("upload rejected:", json.error);
+      return null;
+    }
+    return { url: json.url, fileType: json.fileType };
+  } catch (e) {
+    console.error("uploadFile failed", e);
+    return null;
   }
 }
 
