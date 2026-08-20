@@ -997,7 +997,7 @@ export default function App() {
               title={isOwner ? "Sign out of edit mode" : "Owner sign in"}
             >
               {isOwner ? <Unlock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-              {isOwner ? "Editing as owner — sign out" : "Owner sign in"}
+              {isOwner ? "Editing as owner — sign out" : "Owner "}
             </button>
           </div>
         </div>
