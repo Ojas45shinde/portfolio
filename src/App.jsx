@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Github, Linkedin, Twitter, Instagram, Globe, Mail, ExternalLink,
   Plus, Pencil, Trash2, X, ArrowUpRight, Copy, Check, MapPin, Sparkles, Loader2,
-  Lock, Unlock, FileText, Download, Phone, Code2, Upload, ChevronDown, Repeat2, ArrowRight
+  Lock, Unlock, FileText, Download, Phone, Code2, Upload, ChevronDown, Repeat2, ArrowRight, ArrowUp
 } from "lucide-react";
 import { motion, useMotionValue, useTransform, animate } from "motion/react";
 import {
@@ -209,6 +209,18 @@ function NameReveal({ text }) {
     </div>
   );
 }
+
+/** A second, smaller starfield for the footer. */
+const FOOTER_STARS = Array.from({ length: 40 }).map((_, i) => ({
+  id: i,
+  top: Math.random() * 100,
+  left: Math.random() * 100,
+  size: 1 + Math.random() * 2,
+  minOp: 0.1 + Math.random() * 0.15,
+  maxOp: 0.5 + Math.random() * 0.35,
+  duration: 2.5 + Math.random() * 3.5,
+  delay: -(Math.random() * 6),
+}));
 
 /** A themed, looping typewriter reveal of the name — types out, holds,
     erases, repeats. Pure JS timers (not CSS steps()) so the timing is
@@ -625,7 +637,7 @@ export default function App() {
 
         <button
           onClick={scrollTo("hero")}
-          className="absolute bottom-8 z-10 flex flex-col items-center gap-1 text-xs uppercase tracking-[0.25em] transition-opacity hover:opacity-80"
+          className="absolute bottom-11 z-10 flex flex-col items-center gap-1 text-xs uppercase tracking-[0.25em] transition-opacity hover:opacity-80"
           style={{ color: THEME.cream, fontFamily: "'IBM Plex Mono', monospace" }}
         >
           Scroll
@@ -758,13 +770,18 @@ export default function App() {
                 <p className="text-sm" style={{ color: "rgba(250,243,230,0.5)" }}>Experience is coming soon.</p>
               )
             ) : (
-              <div className="flex flex-col">
-                {experience.map((exp, i) => (
-                  <ExperienceRow key={exp.id} exp={exp} isLast={i === experience.length - 1} isOwner={isOwner}
-                    onEdit={() => setExperienceModal(exp)}
-                    onDelete={() => setConfirmDelete({ type: "experience", id: exp.id, name: exp.role })}
-                  />
-                ))}
+              <div className="grid grid-cols-12 gap-10 md:gap-14">
+                <div className="col-span-12 md:col-span-4">
+                  <ExperiencePath items={experience} />
+                </div>
+                <div className="col-span-12 flex flex-col md:col-span-8">
+                  {experience.map((exp, i) => (
+                    <ExperienceRow key={exp.id} exp={exp} isLast={i === experience.length - 1} isOwner={isOwner}
+                      onEdit={() => setExperienceModal(exp)}
+                      onDelete={() => setConfirmDelete({ type: "experience", id: exp.id, name: exp.role })}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -931,19 +948,59 @@ export default function App() {
       </div>
 
       {/* ============================= FOOTER ============================= */}
-      <footer className="flex flex-col items-center justify-between gap-3 px-5 py-8 text-xs sm:flex-row sm:px-10" style={{ color: "rgba(250,243,230,0.4)", fontFamily: "'IBM Plex Mono', monospace" }}>
-        <span>© {new Date().getFullYear()} {profile.name}</span>
-        <button
-          onClick={isOwner ? signOutOwner : () => setOwnerModalOpen(true)}
-          className="inline-flex items-center gap-1.5 transition-colors"
-          style={{ color: "rgba(250,243,230,0.3)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = THEME.coral)}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(250,243,230,0.3)")}
-          title={isOwner ? "Sign out of edit mode" : "Owner sign in"}
-        >
-          {isOwner ? <Unlock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-          {isOwner ? "Editing as owner — sign out" : "Owner sign in"}
-        </button>
+      <footer className="relative overflow-hidden px-5 py-16 sm:px-10" style={{ background: THEME.ink }}>
+        <div className="starfield">
+          {FOOTER_STARS.map((s) => (
+            <span
+              key={s.id}
+              className="star"
+              style={{
+                top: `${s.top}%`,
+                left: `${s.left}%`,
+                width: `${s.size}px`,
+                height: `${s.size}px`,
+                "--min-op": s.minOp,
+                "--max-op": s.maxOp,
+                animationDuration: `${s.duration}s`,
+                animationDelay: `${s.delay}s`,
+              }}
+            />
+          ))}
+        </div>
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 500px 260px at 50% 0%, rgba(231,111,81,0.08), transparent 70%)" }} />
+
+        <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center gap-5 text-center">
+          <button
+            onClick={scrollTo("hero")}
+            className="footer-launch flex h-11 w-11 items-center justify-center rounded-full transition-transform hover:-translate-y-1"
+            style={{ border: "1px solid rgba(250,243,230,0.2)", color: THEME.sand }}
+            title="Back to top"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </button>
+
+          <div>
+            <p style={{ fontFamily: "'Fraunces', serif", fontSize: "1.05rem", color: THEME.cream }}>{profile.name}</p>
+            <p className="mt-1 text-xs" style={{ color: "rgba(250,243,230,0.45)" }}>Thanks for stopping by — see you out there.</p>
+          </div>
+
+          <div className="h-px w-16" style={{ background: "rgba(250,243,230,0.12)" }} />
+
+          <div className="flex flex-col items-center gap-3 text-xs sm:w-full sm:flex-row sm:justify-between" style={{ color: "rgba(250,243,230,0.4)", fontFamily: "'IBM Plex Mono', monospace" }}>
+            <span>© {new Date().getFullYear()} {profile.name}</span>
+            <button
+              onClick={isOwner ? signOutOwner : () => setOwnerModalOpen(true)}
+              className="inline-flex items-center gap-1.5 transition-colors"
+              style={{ color: "rgba(250,243,230,0.3)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = THEME.coral)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(250,243,230,0.3)")}
+              title={isOwner ? "Sign out of edit mode" : "Owner sign in"}
+            >
+              {isOwner ? <Unlock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+              {isOwner ? "Editing as owner — sign out" : "Owner sign in"}
+            </button>
+          </div>
+        </div>
       </footer>
 
       {/* ============================= MODALS ============================= */}
@@ -981,6 +1038,12 @@ function ProjectCard({ project, isOwner, onEdit, onDelete }) {
       onMouseEnter={() => setIsFlipped(true)}
       onMouseLeave={() => setIsFlipped(false)}
     >
+      {isOwner && (
+        <div className="absolute left-3 top-3 z-30 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <GhostIconButton onClick={onEdit} title="Edit"><Pencil className="h-3.5 w-3.5" /></GhostIconButton>
+          <GhostIconButton onClick={onDelete} title="Delete"><Trash2 className="h-3.5 w-3.5" /></GhostIconButton>
+        </div>
+      )}
       <div
         className="relative h-full w-full [transform-style:preserve-3d] transition-transform duration-500 motion-reduce:transition-none"
         style={{
@@ -997,7 +1060,7 @@ function ProjectCard({ project, isOwner, onEdit, onDelete }) {
               ? `linear-gradient(180deg, rgba(22,38,44,0.25) 0%, rgba(22,38,44,0.55) 55%, rgba(22,38,44,0.94) 100%), url(${project.imageUrl})`
               : `linear-gradient(180deg, ${THEME.deepPurple}, ${THEME.ink})`,
             backgroundSize: "cover",
-            backgroundPosition: "center",
+            backgroundPosition: "center center",
             border: "1px solid rgba(250,243,230,0.08)",
           }}
         >
@@ -1013,12 +1076,6 @@ function ProjectCard({ project, isOwner, onEdit, onDelete }) {
             </div>
           </div>
 
-          {isOwner && (
-            <div className="absolute left-3 top-3 z-10 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-              <GhostIconButton onClick={onEdit} title="Edit"><Pencil className="h-3.5 w-3.5" /></GhostIconButton>
-              <GhostIconButton onClick={onDelete} title="Delete"><Trash2 className="h-3.5 w-3.5" /></GhostIconButton>
-            </div>
-          )}
           <div className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full" style={{ background: "rgba(22,38,44,0.6)", border: "1px solid rgba(250,243,230,0.15)" }} title="Hover to flip">
             <Repeat2 className="h-3.5 w-3.5" style={{ color: THEME.coral }} />
           </div>
@@ -1228,6 +1285,36 @@ function CertStack({ certs, isOwner, onEdit, onDelete }) {
           )}
         </div>
       )}
+
+      {isOwner && total > 1 && (
+        <div className="mt-8 w-full max-w-sm">
+          <p className="mb-2 text-center text-xs uppercase tracking-[0.15em]" style={{ fontFamily: "'IBM Plex Mono', monospace", color: THEME.coral }}>
+            Manage all certifications
+          </p>
+          <div className="flex flex-col rounded-xl" style={{ border: "1px solid rgba(250,243,230,0.08)" }}>
+            {certs.map((cert, i) => (
+              <div
+                key={cert.id}
+                className="flex items-center justify-between gap-2 px-3 py-2"
+                style={{ borderBottom: i === certs.length - 1 ? "none" : "1px solid rgba(250,243,230,0.06)" }}
+              >
+                <button
+                  onClick={() => setCurrentIndex(i)}
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm"
+                  style={{ color: i === currentIndex ? THEME.sand : "rgba(250,243,230,0.7)", fontFamily: "'Space Grotesk', sans-serif" }}
+                  title="Bring to front"
+                >
+                  <span className="truncate">{cert.title}</span>
+                </button>
+                <div className="flex shrink-0 gap-1">
+                  <GhostIconButton onClick={() => onEdit(cert)} title="Edit"><Pencil className="h-3.5 w-3.5" /></GhostIconButton>
+                  <GhostIconButton onClick={() => onDelete(cert)} title="Delete"><Trash2 className="h-3.5 w-3.5" /></GhostIconButton>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1286,6 +1373,44 @@ function CertStackCard({ cert, index, currentIndex, totalCerts, onNext }) {
 }
 
 /* =============================== modals impl =============================== */
+
+/** A vertical "journey" roadmap — oldest role at top, dotted line down to
+    the most recent, each stop pinned with role + dates. Purely a second
+    view of the same experience data; the detailed list stays untouched. */
+function ExperiencePath({ items }) {
+  const chronological = [...items].sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+
+  return (
+    <div className="flex flex-col">
+      {chronological.map((exp, i) => {
+        const isLast = i === chronological.length - 1;
+        const duration = [exp.start, exp.end || "Present"].filter(Boolean).join(" – ");
+        return (
+          <div key={exp.id} className="flex gap-4">
+            <div className="flex flex-col items-center">
+              <span
+                className="mt-1.5 h-3 w-3 shrink-0 rounded-full"
+                style={{
+                  background: isLast ? THEME.burntOrange : THEME.sand,
+                  boxShadow: isLast ? `0 0 0 5px rgba(231,111,81,0.22)` : "none",
+                }}
+              />
+              {!isLast && <span className="w-0 flex-1" style={{ borderLeft: "2px dashed rgba(250,243,230,0.22)", minHeight: 36 }} />}
+            </div>
+            <div className={isLast ? "pb-1" : "pb-8"}>
+              {duration && (
+                <span className="text-xs" style={{ fontFamily: "'IBM Plex Mono', monospace", color: THEME.coral }}>{duration}</span>
+              )}
+              <p className="mt-0.5 text-sm font-medium leading-snug" style={{ fontFamily: "'Fraunces', serif", color: THEME.cream }}>{exp.role}</p>
+              {exp.company && <p className="text-xs" style={{ color: "rgba(250,243,230,0.5)" }}>{exp.company}</p>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 
 function ExperienceRow({ exp, isLast, isOwner, onEdit, onDelete }) {
   const duration = [exp.start, exp.end || "Present"].filter(Boolean).join(" – ");
@@ -1702,6 +1827,9 @@ function GlobalStyle() {
           ${THEME.ink};
         background-repeat: no-repeat;
       }
+
+      .footer-launch { transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; }
+      .footer-launch:hover { border-color: ${THEME.coral} !important; box-shadow: 0 0 24px rgba(231,111,81,0.35); }
 
       .social-chip { transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease; }
       .social-chip:hover { border-color: ${THEME.coral} !important; transform: translateY(-2px); background: rgba(231,111,81,0.08); }
